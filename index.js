@@ -28,6 +28,15 @@ async function run() {
     await client.connect();
     // Send a ping to confirm a successful connection
 
+    const categoryCollection = client.db('PharmaPlaza').collection('category')
+
+
+    // category api
+    app.get('/category', async(req, res) => {
+      const result = await categoryCollection.find().toArray();
+      res.send(result)
+    })
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
