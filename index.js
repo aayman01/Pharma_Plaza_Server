@@ -30,6 +30,21 @@ async function run() {
 
     const categoryCollection = client.db('PharmaPlaza').collection('category');
     const reviewCollection = client.db('PharmaPlaza').collection('reviews');
+    const advertisementCollection = client.db('PharmaPlaza').collection('advertisements');
+    const productCollection = client.db('PharmaPlaza').collection('products');
+
+
+    //products api
+    app.get('/products', async(req,res)=>{
+      const result = await productCollection.find().toArray();
+      res.send(result)
+    }) 
+
+    // advertisement api
+    app.get('/advertisements',async(req, res)=>{
+      const result = await advertisementCollection.find().toArray();
+      res.send(result)
+    })
 
     // category api
     app.get('/category', async(req, res) => {
