@@ -28,11 +28,18 @@ async function run() {
     await client.connect();
     // Send a ping to confirm a successful connection
 
-    const categoryCollection = client.db('PharmaPlaza').collection('category');
     const reviewCollection = client.db('PharmaPlaza').collection('reviews');
     const advertisementCollection = client.db('PharmaPlaza').collection('advertisements');
     const productCollection = client.db('PharmaPlaza').collection('products');
 
+
+    // getting data by specific category
+    app.get('/category/:name',async(req, res)=>{
+      const name = req.params.name;
+      const query = { categoryName : name};
+      const result = await productCollection.find(query).toArray();
+      res.send(result)
+    })
 
     //products api
     app.get('/products', async(req,res)=>{
@@ -46,11 +53,6 @@ async function run() {
       res.send(result)
     })
 
-    // category api
-    app.get('/category', async(req, res) => {
-      const result = await categoryCollection.find().toArray();
-      res.send(result)
-    })
     // reviews api
     app.get('/reviews',async(req, res) => {
       const result = await reviewCollection.find().toArray();
