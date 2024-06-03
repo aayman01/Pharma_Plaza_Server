@@ -31,6 +31,7 @@ async function run() {
     const reviewCollection = client.db('PharmaPlaza').collection('reviews');
     const advertisementCollection = client.db('PharmaPlaza').collection('advertisements');
     const productCollection = client.db('PharmaPlaza').collection('products');
+    const cartCollection = client.db('PharmaPlaza').collection('carts');
 
 
     // getting data by specific category
@@ -38,6 +39,13 @@ async function run() {
       const name = req.params.name;
       const query = { categoryName : name};
       const result = await productCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    // cart replated api
+    app.post('/carts',async(req, res) => {
+      const item = req.body;
+      const result = await cartCollection.insertOne(item);
       res.send(result)
     })
 
