@@ -85,14 +85,23 @@ async function run() {
     //products api
     app.get("/products", async (req, res) => {
       const search = req.query.search;
+      const size = parseInt(req.query.size);
+      const page = parseInt(req.query.page) -1 ;
       let query = {
         $or: [
           { name: { $regex: search, $options: "i" } },
           { companyName: { $regex: search, $options: "i" } },
+          { categoryName: { $regex: search, $options: "i" } },
         ],
       };
-      const result = await productCollection.find(query).toArray();
+      const result = await productCollection.find(query).skip(page * size).limit(size).toArray();
       res.send(result);
+    });
+
+    // get all data for pagination
+    app.get("/products-count", async (req, res) => {
+      const count = await productCollection.countDocuments();
+      res.send({count});
     });
 
     // advertisement api
