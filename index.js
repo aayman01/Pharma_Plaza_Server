@@ -32,7 +32,34 @@ async function run() {
     const advertisementCollection = client.db('PharmaPlaza').collection('advertisements');
     const productCollection = client.db('PharmaPlaza').collection('products');
     const cartCollection = client.db('PharmaPlaza').collection('carts');
+    const userCollection = client.db('PharmaPlaza').collection('users');
 
+
+    // user related api
+    app.post('/users',async(req, res)=>{
+      const user = req.body;
+      const query = {email : user.email};
+      const existUser = await userCollection.findOne(query);
+      if(existUser){
+        return res.send({message : "user already exists", inserted : null})
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result)
+    })
+
+    app.put('/users/:email',async(req, res) => {
+      const email = req.params.email;
+      const data = req.body;
+      const query = {email : email};
+      const updatedDoc = {
+        $set : {
+          name : data.name,
+          role : data.role
+        }
+      }
+      const result = await userCollection.updateOne(query,updatedDoc)
+      res.send(result)
+    })
 
     // getting data by specific category
     app.get('/category/:name',async(req, res)=>{
@@ -43,6 +70,13 @@ async function run() {
     })
 
     // cart replated api
+    app.get('/carts',async(req,res)=>{
+      const email = req.query.email;
+      const query = {email : email};
+      const result = await cartCollection.find(query).toArray();
+      res.send(result)
+    })
+
     app.post('/carts',async(req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
@@ -51,6 +85,11 @@ async function run() {
 
     //products api
     app.get('/products', async(req,res)=>{
+      const search = req.query.search;
+      let query = {
+        name : {$regex : search , $option : 'i'},
+        companyName : {$regex : search , $option : 'i'},
+      };
       const result = await productCollection.find().toArray();
       res.send(result)
     }) 
