@@ -87,6 +87,7 @@ async function run() {
       const search = req.query.search;
       const size = parseInt(req.query.size);
       const page = parseInt(req.query.page) -1 ;
+      const sort = req.query.sort;
       let query = {
         $or: [
           { name: { $regex: search, $options: "i" } },
@@ -94,7 +95,9 @@ async function run() {
           { categoryName: { $regex: search, $options: "i" } },
         ],
       };
-      const result = await productCollection.find(query).skip(page * size).limit(size).toArray();
+      let options = {};
+      if(sort) options = {sort : {pricePerUnit : sort === 'asc' ? 1 : -1}}
+      const result = await productCollection.find(query,options).skip(page * size).limit(size).toArray();
       res.send(result);
     });
 
