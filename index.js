@@ -5,11 +5,9 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-
-// middleware 
+// middleware
 app.use(cors());
 app.use(express.json());
-
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.xrbh57q.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -28,83 +26,86 @@ async function run() {
     await client.connect();
     // Send a ping to confirm a successful connection
 
-    const reviewCollection = client.db('PharmaPlaza').collection('reviews');
-    const advertisementCollection = client.db('PharmaPlaza').collection('advertisements');
-    const productCollection = client.db('PharmaPlaza').collection('products');
-    const cartCollection = client.db('PharmaPlaza').collection('carts');
-    const userCollection = client.db('PharmaPlaza').collection('users');
-
+    const reviewCollection = client.db("PharmaPlaza").collection("reviews");
+    const advertisementCollection = client
+      .db("PharmaPlaza")
+      .collection("advertisements");
+    const productCollection = client.db("PharmaPlaza").collection("products");
+    const cartCollection = client.db("PharmaPlaza").collection("carts");
+    const userCollection = client.db("PharmaPlaza").collection("users");
 
     // user related api
-    app.post('/users',async(req, res)=>{
+    app.post("/users", async (req, res) => {
       const user = req.body;
-      const query = {email : user.email};
+      const query = { email: user.email };
       const existUser = await userCollection.findOne(query);
-      if(existUser){
-        return res.send({message : "user already exists", inserted : null})
+      if (existUser) {
+        return res.send({ message: "user already exists", inserted: null });
       }
       const result = await userCollection.insertOne(user);
-      res.send(result)
-    })
+      res.send(result);
+    });
 
-    app.put('/users/:email',async(req, res) => {
+    app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const data = req.body;
-      const query = {email : email};
+      const query = { email: email };
       const updatedDoc = {
-        $set : {
-          name : data.name,
-          role : data.role
-        }
-      }
-      const result = await userCollection.updateOne(query,updatedDoc)
-      res.send(result)
-    })
+        $set: {
+          name: data.name,
+          role: data.role,
+        },
+      };
+      const result = await userCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
 
     // getting data by specific category
-    app.get('/category/:name',async(req, res)=>{
+    app.get("/category/:name", async (req, res) => {
       const name = req.params.name;
-      const query = { categoryName : name};
+      const query = { categoryName: name };
       const result = await productCollection.find(query).toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     // cart replated api
-    app.get('/carts',async(req,res)=>{
+    app.get("/carts", async (req, res) => {
       const email = req.query.email;
-      const query = {email : email};
+      const query = { email: email };
       const result = await cartCollection.find(query).toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
-    app.post('/carts',async(req, res) => {
+    app.post("/carts", async (req, res) => {
       const item = req.body;
       const result = await cartCollection.insertOne(item);
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     //products api
-    app.get('/products', async(req,res)=>{
+    app.get("/products", async (req, res) => {
       const search = req.query.search;
       let query = {
-        name : {$regex : search , $option : 'i'},
-        companyName : {$regex : search , $option : 'i'},
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { companyName: { $regex: search, $options: "i" } },
+        ],
       };
-      const result = await productCollection.find().toArray();
-      res.send(result)
-    }) 
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
+    });
 
     // advertisement api
-    app.get('/advertisements',async(req, res)=>{
+    app.get("/advertisements", async (req, res) => {
       const result = await advertisementCollection.find().toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     // reviews api
-    app.get('/reviews',async(req, res) => {
+    app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -117,10 +118,10 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.get('/',(req, res) => {
-    res.send("PharmaPlaza is running...")
-})
+app.get("/", (req, res) => {
+  res.send("PharmaPlaza is running...");
+});
 
-app.listen(port,()=>{
-    console.log(`my port is running on ${port}`)
-})
+app.listen(port, () => {
+  console.log(`my port is running on ${port}`);
+});
