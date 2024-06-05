@@ -45,6 +45,23 @@ async function run() {
       });
       res.send({ token });
     });
+
+    // verify token
+    const verifyToken = (req, res, next) => {
+      // console.log('test verify token',req.headers);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: "unauthorized access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+    };
+
     // user related api
     app.post("/users", async (req, res) => {
       const user = req.body;
