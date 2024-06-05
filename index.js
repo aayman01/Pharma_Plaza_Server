@@ -35,9 +35,7 @@ async function run() {
     const cartCollection = client.db("PharmaPlaza").collection("carts");
     const userCollection = client.db("PharmaPlaza").collection("users");
 
-
-
-    // jwt 
+    // jwt
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
@@ -110,12 +108,18 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/carts/:id',async(req, res) => {
+    app.delete("/carts/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id : new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await cartCollection.deleteOne(query);
       res.send(result);
-    })
+    });
+
+    app.delete("/cart/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await cartCollection.deleteMany({email : email})
+      res.send(result)
+    });
 
     //products api
     app.get("/products", async (req, res) => {
