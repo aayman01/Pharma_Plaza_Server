@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
 const app = express();
@@ -34,13 +35,23 @@ async function run() {
     const cartCollection = client.db("PharmaPlaza").collection("carts");
     const userCollection = client.db("PharmaPlaza").collection("users");
 
+
+
+    // jwt 
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
+        expiresIn: "5h",
+      });
+      res.send({ token });
+    });
     // user related api
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
       const existUser = await userCollection.findOne(query);
       if (existUser) {
-        return res.send({ message: "user already exists", inserted: null });
+        return res.send({ message: "user already exists", insertedId: null });
       }
       const result = await userCollection.insertOne(user);
       res.send(result);
@@ -86,25 +97,34 @@ async function run() {
     app.get("/products", async (req, res) => {
       const search = req.query.search;
       const size = parseInt(req.query.size);
-      const page = parseInt(req.query.page) -1 ;
+      const page = parseInt(req.query.page) - 1;
       const sort = req.query.sort;
-      let query = {
-        $or: [
-          { name: { $regex: search, $options: "i" } },
-          { companyName: { $regex: search, $options: "i" } },
-          { categoryName: { $regex: search, $options: "i" } },
-        ],
-      };
+      let query = {};
+
+      if (search) {
+        query = {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { companyName: { $regex: search, $options: "i" } },
+            { categoryName: { $regex: search, $options: "i" } },
+          ],
+        };
+      }
       let options = {};
-      if(sort) options = {sort : {pricePerUnit : sort === 'asc' ? 1 : -1}}
-      const result = await productCollection.find(query,options).skip(page * size).limit(size).toArray();
+      if (sort) options = { sort: { pricePerUnit: sort === "asc" ? 1 : -1 } };
+
+      const result = await productCollection
+        .find(query, options)
+        .skip(page * size)
+        .limit(size)
+        .toArray();
       res.send(result);
     });
 
     // get all data for pagination
     app.get("/products-count", async (req, res) => {
       const count = await productCollection.countDocuments();
-      res.send({count});
+      res.send({ count });
     });
 
     // advertisement api
