@@ -121,6 +121,20 @@ async function run() {
       res.send(result)
     });
 
+    app.put('/update-cart/:id',async(req,res) =>{
+      const id = req.params.id;
+      const query = { productId: id };
+      const data = req.body;
+      const updatedDoc = {
+        $set: {
+          price: data.price,
+          quantity: data.quantity,
+        },
+      };
+      const result = await cartCollection.updateOne(query,updatedDoc)
+      res.send(result)
+    })
+
     //products api
     app.get("/products", async (req, res) => {
       const search = req.query.search;
