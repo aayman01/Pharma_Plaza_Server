@@ -3,6 +3,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRECT_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -34,12 +35,13 @@ async function run() {
     const productCollection = client.db("PharmaPlaza").collection("products");
     const cartCollection = client.db("PharmaPlaza").collection("carts");
     const userCollection = client.db("PharmaPlaza").collection("users");
+    const paymentCollection = client.db("PharmaPlaza").collection("payments");
 
     // jwt
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
-        expiresIn: "5h",
+        expiresIn: "1h",
       });
       res.send({ token });
     });
@@ -117,23 +119,23 @@ async function run() {
 
     app.delete("/cart/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await cartCollection.deleteMany({email : email})
-      res.send(result)
+      const result = await cartCollection.deleteMany({ email: email });
+      res.send(result);
     });
 
-    app.put('/update-cart/:id',async(req,res) =>{
+    app.put("/update-cart/:id", async (req, res) => {
       const id = req.params.id;
       const query = { productId: id };
       const data = req.body;
       const updatedDoc = {
         $set: {
-          price: data.price,
+          pricePerUnit: data.pricePerUnit,
           quantity: data.quantity,
         },
       };
-      const result = await cartCollection.updateOne(query,updatedDoc)
-      res.send(result)
-    })
+      const result = await cartCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
 
     //products api
     app.get("/products", async (req, res) => {
@@ -179,6 +181,36 @@ async function run() {
     app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
       res.send(result);
+    });
+
+    // payment intent
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+      // console.log('payment info: ',payment)
+      const query = {
+        _id: {
+          $in: payment.cartIds.map((id) => new ObjectId(id)),
+        },
+      };
+      const deleteResult = await cartCollection.deleteMany(query);
+      res.send({ paymentResult, deleteResult });
     });
 
     await client.db("admin").command({ ping: 1 });
