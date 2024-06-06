@@ -209,6 +209,11 @@ async function run() {
 
     // invoice related api
 
+    app.get('/invoice',async(req, res) =>{
+      const result = await invoiceCollection.find().toArray();
+      res.send(result);
+    })
+
     app.post('/invoice',async(req, res) => {
       const invoice = req.body;
       const InvoiceResult = await invoiceCollection.insertOne(invoice);
