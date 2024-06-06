@@ -36,6 +36,7 @@ async function run() {
     const cartCollection = client.db("PharmaPlaza").collection("carts");
     const userCollection = client.db("PharmaPlaza").collection("users");
     const paymentCollection = client.db("PharmaPlaza").collection("payments");
+    const invoiceCollection = client.db("PharmaPlaza").collection("invoices");
 
     // jwt
     app.post("/jwt", async (req, res) => {
@@ -203,15 +204,22 @@ async function run() {
     app.post("/payments", async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
-      // console.log('payment info: ',payment)
+       res.send(paymentResult);
+    });
+
+    // invoice related api
+
+    app.post('/invoice',async(req, res) => {
+      const invoice = req.body;
+      const InvoiceResult = await invoiceCollection.insertOne(invoice);
       const query = {
-        _id: {
-          $in: payment.cartIds.map((id) => new ObjectId(id)),
+        _id : {
+          $in : invoice.cartIds.map(id => new ObjectId(id))
         },
       };
-      const deleteResult = await cartCollection.deleteMany(query);
-      res.send({ paymentResult, deleteResult });
-    });
+      const deleteResult = await cartCollection.deleteMany(query); 
+      res.send({InvoiceResult, deleteResult})
+    })
 
     await client.db("admin").command({ ping: 1 });
     console.log(
