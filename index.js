@@ -37,6 +37,7 @@ async function run() {
     const userCollection = client.db("PharmaPlaza").collection("users");
     const paymentCollection = client.db("PharmaPlaza").collection("payments");
     const invoiceCollection = client.db("PharmaPlaza").collection("invoices");
+    const blogCollection = client.db('PharmaPlaza').collection('blogs');
 
     // jwt
     app.post("/jwt", async (req, res) => {
@@ -184,6 +185,12 @@ async function run() {
       res.send(result);
     });
 
+    // blogs api
+    app.get('/blogs', async(req, res) => {
+      const result = await blogCollection.find().toArray();
+      res.send(result)
+    })
+
     // payment intent
 
     app.post("/create-payment-intent", async (req, res) => {
@@ -209,7 +216,7 @@ async function run() {
 
     // invoice related api
 
-    app.get('/invoice',async(req, res) =>{
+    app.get('/invoices',async(req, res) =>{
       const result = await invoiceCollection.find().toArray();
       res.send(result);
     })
@@ -224,7 +231,17 @@ async function run() {
       };
       const deleteResult = await cartCollection.deleteMany(query); 
       res.send({InvoiceResult, deleteResult})
-    })
+    });
+
+    app.delete("/invoice-delete/:id",async(req, res) => {
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const result = await invoiceCollection.deleteOne(query);
+      res.send(result)
+    });
+
+
+
 
     await client.db("admin").command({ ping: 1 });
     console.log(
