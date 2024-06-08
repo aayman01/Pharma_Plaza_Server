@@ -78,7 +78,7 @@ async function run() {
 
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await usersCollection.findOne({ email });
+      const result = await userCollection.findOne({ email });
       res.send(result);
     });
 
@@ -198,6 +198,18 @@ async function run() {
     })
 
     // payment intent
+
+    app.get('/payment',async(req, res) => {
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.get('/payment/:email',async(req, res) => {
+      const email = req.params.email;
+      const query = {email :  email};
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result)
+    })
 
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
