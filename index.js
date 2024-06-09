@@ -199,6 +199,30 @@ async function run() {
       res.send(result);
     })
 
+    app.patch('/advertisement/:id',async(req, res) => {
+      const id = req.params.id;
+      // const data = req.body;
+      const query = { _id : new ObjectId(id) };
+      const advertisement = await advertisementCollection.findOne({ _id: new ObjectId(id) });
+      // console.log(data)
+       if (!advertisement) {
+         return res.status(404).json({ error: "Advertisement not found" });
+       }
+       let newStatus;
+      if (advertisement.status === "Approved") {
+        newStatus = "Hidden";
+      } else if (advertisement.status === "Hidden") {
+        newStatus = "Approved";
+      } 
+      const updatedDoc = {
+        $set : {
+          status : newStatus,
+        }
+      };
+      const result = await advertisementCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    })
+
     // reviews api
     app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
