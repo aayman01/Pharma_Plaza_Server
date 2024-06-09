@@ -185,6 +185,20 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/advertisements/:email',async( req, res) => {
+      const email = req.params.email;
+      const result = await advertisementCollection
+        .find({ sellerEmail: email })
+        .toArray();
+      res.send(result); 
+    })
+
+    app.post("/advertisement",async(req, res) => {
+      const data = req.body;
+      const result = await advertisementCollection.insertOne(data);
+      res.send(result);
+    })
+
     // reviews api
     app.get("/reviews", async (req, res) => {
       const result = await reviewCollection.find().toArray();
