@@ -228,6 +228,12 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/product", async (req, res) => {
+      const data = req.body;
+      const result = await productCollection.insertOne(data);
+      res.send(result);
+    });
+
     // get all data for pagination
     app.get("/products-count", async (req, res) => {
       const count = await productCollection.countDocuments();
