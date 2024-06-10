@@ -174,10 +174,59 @@ async function run() {
         return acc;
       }, {});
 
-      console.log(amountTotals)
+      // console.log(amountTotals)
 
       res.send({amountTotals})
     });
+
+    app.get('/seller-payment-history',verifyToken,verifySeller,async(req, res) => {
+      const sellerEmail = req.query.email;
+      const paymentHistory = await paymentCollection
+        .aggregate([
+          {
+            $unwind: "$productIds",
+          },
+          {
+            $addFields: {
+              productIds: { $toObjectId: "$productIds" },
+            },
+          },
+          {
+            $lookup: {
+              from: "products",
+              localField: "productIds",
+              foreignField: "_id",
+              as: "productInfo",
+            },
+          },
+          {
+            $unwind: "$productInfo",
+          },
+          {
+            $match: {
+              "productInfo.sellerEmail": sellerEmail,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              email: 1,
+              price: 1,
+              transactionId: 1,
+              date: 1,
+              status: 1,
+              productInfo: {
+                _id: 1,
+                name: 1,
+                pricePerUnit: 1,
+              },
+            },
+          },
+        ])
+        .toArray();
+
+        res.send(paymentHistory)
+    })
 
     // user related api
     app.get("/user", async (req, res) => {
