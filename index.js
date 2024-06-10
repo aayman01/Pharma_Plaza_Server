@@ -38,6 +38,7 @@ async function run() {
     const paymentCollection = client.db("PharmaPlaza").collection("payments");
     const invoiceCollection = client.db("PharmaPlaza").collection("invoices");
     const blogCollection = client.db('PharmaPlaza').collection('blogs');
+    const categoryCollection = client.db('PharmaPlaza').collection('category');
 
     // jwt
     app.post("/jwt", async (req, res) => {
@@ -106,7 +107,6 @@ async function run() {
       async (req, res) => {
         const id = req.params.id;
         const data = req.body;
-        console.log(data)
         const filter = { _id: new ObjectId(id) };
         const updatedDoc = {
           $set: {
@@ -118,11 +118,38 @@ async function run() {
       }
     );
 
-    // getting data by specific category
-    app.get("/category/:name", async (req, res) => {
-      const name = req.params.name;
-      const query = { categoryName: name };
-      const result = await productCollection.find(query).toArray();
+
+    // category related api
+      app.get('/category',async(req, res) => {
+      const result = await categoryCollection.find().toArray();
+      res.send(result);
+    })
+    
+    app.delete("/category/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await categoryCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.patch("/category/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      // console.log(data);
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          categoryName: data.categoryName,
+          categoryImage: data.categoryImage
+        },
+      };
+      const result = await categoryCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    app.post("/category", async (req, res) => {
+      const newData = req.body;
+      const result = await categoryCollection.insertOne(newData);
       res.send(result);
     });
 
@@ -192,6 +219,12 @@ async function run() {
         .skip(page * size)
         .limit(size)
         .toArray();
+      res.send(result);
+    });
+    app.get("/category/:name", async (req, res) => {
+      const name = req.params.name;
+      const query = { categoryName: name };
+      const result = await productCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -292,6 +325,20 @@ async function run() {
        res.send(paymentResult);
     });
 
+    app.patch("/payment/admin/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      // console.log(data);
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: data.status,
+        },
+      };
+      const result = await paymentCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
     // invoice related api
 
     app.get('/invoices',async(req, res) =>{
@@ -317,8 +364,6 @@ async function run() {
       const result = await invoiceCollection.deleteOne(query);
       res.send(result)
     });
-
-
 
 
     await client.db("admin").command({ ping: 1 });
