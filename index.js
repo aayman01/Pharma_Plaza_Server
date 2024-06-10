@@ -64,10 +64,30 @@ async function run() {
         next();
       });
     };
+    // verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "Admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+    const verifySeller = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "Seller";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
 
-    // admin state
     // admin stats
-    app.get("/admin-stats", verifyToken, async (req, res) => {
+    app.get("/admin-stats", verifyToken, verifyAdmin, async (req, res) => {
       const paymentAmounts = await paymentCollection
         .aggregate([
           {
@@ -87,7 +107,7 @@ async function run() {
       const amountTotals = paymentAmounts.reduce((acc, payment) => {
         acc[payment._id] = Number(payment.totalAmount.toFixed(2));
         return acc;
-      }, {});;
+      }, {});
 
       // console.log(amountTotals);
 
@@ -107,6 +127,56 @@ async function run() {
       const revenue = result.length > 0 ? result[0].totalRevenue : 0;
 
       res.send({ amountTotals, revenue });
+    });
+
+    // seller stats
+
+    app.get("/seller-stats",verifyToken,verifySeller, async (req, res) => {
+      const sellerEmail = req.query.email;
+      console.log(sellerEmail)
+      const paymentAmounts = await paymentCollection
+        .aggregate([
+          {
+            $unwind: "$productIds",
+          },
+          {
+            $addFields: {
+              productIds: { $toObjectId: "$productIds" },
+            },
+          },
+          {
+            $lookup: {
+              from: "products",
+              localField: "productIds",
+              foreignField: "_id",
+              as: "productInfo",
+            },
+          },
+          {
+            $unwind: "$productInfo",
+          },
+          {
+            $match: {
+              "productInfo.sellerEmail": sellerEmail,
+            },
+          },
+          {
+            $group: {
+              _id: "$status",
+              totalAmount: { $sum: "$price" },
+            },
+          },
+        ])
+        .toArray();
+        // console.log(paymentAmounts)
+      const amountTotals = paymentAmounts.reduce((acc, payment) => {
+        acc[payment._id] = Number(payment.totalAmount.toFixed(2));
+        return acc;
+      }, {});
+
+      console.log(amountTotals)
+
+      res.send({amountTotals})
     });
 
     // user related api
