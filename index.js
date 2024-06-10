@@ -37,8 +37,8 @@ async function run() {
     const userCollection = client.db("PharmaPlaza").collection("users");
     const paymentCollection = client.db("PharmaPlaza").collection("payments");
     const invoiceCollection = client.db("PharmaPlaza").collection("invoices");
-    const blogCollection = client.db('PharmaPlaza').collection('blogs');
-    const categoryCollection = client.db('PharmaPlaza').collection('category');
+    const blogCollection = client.db("PharmaPlaza").collection("blogs");
+    const categoryCollection = client.db("PharmaPlaza").collection("category");
 
     // jwt
     app.post("/jwt", async (req, res) => {
@@ -65,11 +65,55 @@ async function run() {
       });
     };
 
+    // admin state
+    // admin stats
+    app.get("/admin-stats", verifyToken, async (req, res) => {
+      const paymentAmounts = await paymentCollection
+        .aggregate([
+          {
+            $match: {
+              status: { $in: ["Paid", "pending"] },
+            },
+          },
+          {
+            $group: {
+              _id: "$status",
+              totalAmount: { $sum: "$price" },
+            },
+          },
+        ])
+        .toArray();
+
+      const amountTotals = paymentAmounts.reduce((acc, payment) => {
+        acc[payment._id] = Number(payment.totalAmount.toFixed(2));
+        return acc;
+      }, {});;
+
+      // console.log(amountTotals);
+
+      const result = await paymentCollection
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalRevenue: {
+                $sum: "$price",
+              },
+            },
+          },
+        ])
+        .toArray();
+
+      const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+      res.send({ amountTotals, revenue });
+    });
+
     // user related api
-    app.get('/user',async(req, res) => {
-      const result= await userCollection.find().toArray();
-      res.send(result)
-    })
+    app.get("/user", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -101,30 +145,25 @@ async function run() {
       res.send(result);
     });
 
-    app.patch(
-      "/users/admin/:id",
-      verifyToken,
-      async (req, res) => {
-        const id = req.params.id;
-        const data = req.body;
-        const filter = { _id: new ObjectId(id) };
-        const updatedDoc = {
-          $set: {
-            role: data.role,
-          },
-        };
-        const result = await userCollection.updateOne(filter, updatedDoc);
-        res.send(result);
-      }
-    );
-
+    app.patch("/users/admin/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: data.role,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
 
     // category related api
-      app.get('/category',async(req, res) => {
+    app.get("/category", async (req, res) => {
       const result = await categoryCollection.find().toArray();
       res.send(result);
-    })
-    
+    });
+
     app.delete("/category/delete/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -140,7 +179,7 @@ async function run() {
       const updatedDoc = {
         $set: {
           categoryName: data.categoryName,
-          categoryImage: data.categoryImage
+          categoryImage: data.categoryImage,
         },
       };
       const result = await categoryCollection.updateOne(filter, updatedDoc);
@@ -246,43 +285,45 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/advertisements/:email',async( req, res) => {
+    app.get("/advertisements/:email", async (req, res) => {
       const email = req.params.email;
       const result = await advertisementCollection
         .find({ sellerEmail: email })
         .toArray();
-      res.send(result); 
-    })
+      res.send(result);
+    });
 
-    app.post("/advertisement",async(req, res) => {
+    app.post("/advertisement", async (req, res) => {
       const data = req.body;
       const result = await advertisementCollection.insertOne(data);
       res.send(result);
-    })
+    });
 
-    app.patch('/advertisement/:id',async(req, res) => {
+    app.patch("/advertisement/:id", async (req, res) => {
       const id = req.params.id;
       // const data = req.body;
-      const query = { _id : new ObjectId(id) };
-      const advertisement = await advertisementCollection.findOne({ _id: new ObjectId(id) });
+      const query = { _id: new ObjectId(id) };
+      const advertisement = await advertisementCollection.findOne({
+        _id: new ObjectId(id),
+      });
       // console.log(data)
-       if (!advertisement) {
-         return res.status(404).json({ error: "Advertisement not found" });
-       }
-       let newStatus;
+      if (!advertisement) {
+        return res.status(404).json({ error: "Advertisement not found" });
+      }
+      let newStatus;
       if (advertisement.status === "Approved") {
         newStatus = "Hidden";
       } else if (advertisement.status === "Hidden") {
         newStatus = "Approved";
-      } 
+      }
       const updatedDoc = {
-        $set : {
-          status : newStatus,
-        }
+        $set: {
+          status: newStatus,
+        },
       };
       const result = await advertisementCollection.updateOne(query, updatedDoc);
       res.send(result);
-    })
+    });
 
     // reviews api
     app.get("/reviews", async (req, res) => {
@@ -291,24 +332,24 @@ async function run() {
     });
 
     // blogs api
-    app.get('/blogs', async(req, res) => {
+    app.get("/blogs", async (req, res) => {
       const result = await blogCollection.find().toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     // payment intent
 
-    app.get('/payment',async(req, res) => {
+    app.get("/payment", async (req, res) => {
       const result = await paymentCollection.find().toArray();
       res.send(result);
-    })
+    });
 
-    app.get('/payment/:email',async(req, res) => {
+    app.get("/payment/:email", async (req, res) => {
       const email = req.params.email;
-      const query = {email :  email};
+      const query = { email: email };
       const result = await paymentCollection.find(query).toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
@@ -328,7 +369,7 @@ async function run() {
     app.post("/payments", async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
-       res.send(paymentResult);
+      res.send(paymentResult);
     });
 
     app.patch("/payment/admin/:id", verifyToken, async (req, res) => {
@@ -347,30 +388,29 @@ async function run() {
 
     // invoice related api
 
-    app.get('/invoices',async(req, res) =>{
+    app.get("/invoices", async (req, res) => {
       const result = await invoiceCollection.find().toArray();
       res.send(result);
-    })
+    });
 
-    app.post('/invoice',async(req, res) => {
+    app.post("/invoice", async (req, res) => {
       const invoice = req.body;
       const InvoiceResult = await invoiceCollection.insertOne(invoice);
       const query = {
-        _id : {
-          $in : invoice.cartIds.map(id => new ObjectId(id))
+        _id: {
+          $in: invoice.cartIds.map((id) => new ObjectId(id)),
         },
       };
-      const deleteResult = await cartCollection.deleteMany(query); 
-      res.send({InvoiceResult, deleteResult})
+      const deleteResult = await cartCollection.deleteMany(query);
+      res.send({ InvoiceResult, deleteResult });
     });
 
-    app.delete("/invoice-delete/:id",async(req, res) => {
+    app.delete("/invoice-delete/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id : new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await invoiceCollection.deleteOne(query);
-      res.send(result)
+      res.send(result);
     });
-
 
     await client.db("admin").command({ ping: 1 });
     console.log(
