@@ -86,6 +86,45 @@ async function run() {
       next();
     };
 
+    // sales report
+    app.get('/sales-report',verifyToken,verifyAdmin, async(req, res) =>{
+     
+      const salesData = await paymentCollection
+        .aggregate([
+          { $unwind: "$productIds" },
+          {
+            $addFields: {
+              productIds: { $toObjectId: "$productIds" },
+            },
+          },
+          {
+            $lookup: {
+              from: "products",
+              localField: "productIds",
+              foreignField: "_id",
+              as: "productDetails",
+            },
+          },
+          { $unwind: "$productDetails" },
+          {
+            $project: {
+              _id: 1,
+              email: 1,
+              price: 1,
+              transactionId: 1,
+              date: 1,
+              status: 1,
+              "productDetails.name": 1,
+              "productDetails.sellerEmail": 1,
+              "productDetails.pricePerUnit": 1,
+            },
+          },
+        ])
+        .toArray();
+        // console.log(salesData)
+        res.send(salesData);
+    })
+
     // admin stats
     app.get("/admin-stats", verifyToken, verifyAdmin, async (req, res) => {
       const paymentAmounts = await paymentCollection
@@ -133,7 +172,7 @@ async function run() {
 
     app.get("/seller-stats",verifyToken,verifySeller, async (req, res) => {
       const sellerEmail = req.query.email;
-      console.log(sellerEmail)
+      // console.log(sellerEmail)
       const paymentAmounts = await paymentCollection
         .aggregate([
           {
@@ -264,7 +303,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/admin/:id", verifyToken, async (req, res) => {
+    app.patch("/users/admin/:id", verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const data = req.body;
       const filter = { _id: new ObjectId(id) };
@@ -283,14 +322,14 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/category/delete/:id", async (req, res) => {
+    app.delete("/category/delete/:id",verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await categoryCollection.deleteOne(query);
       res.send(result);
     });
 
-    app.patch("/category/:id", verifyToken, async (req, res) => {
+    app.patch("/category/:id", verifyToken,verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const data = req.body;
       // console.log(data);
@@ -305,7 +344,7 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/category", async (req, res) => {
+    app.post("/category",verifyToken,verifyAdmin, async (req, res) => {
       const newData = req.body;
       const result = await categoryCollection.insertOne(newData);
       res.send(result);
@@ -491,7 +530,7 @@ async function run() {
       res.send(paymentResult);
     });
 
-    app.patch("/payment/admin/:id", verifyToken, async (req, res) => {
+    app.patch("/payment/admin/:id", verifyToken,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const data = req.body;
       // console.log(data);
